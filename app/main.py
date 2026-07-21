@@ -19,6 +19,7 @@ from .middleware import (
     RateLimitMiddleware,
     RequestIdMiddleware,
     StatsCacheMiddleware,
+    TemporaryBlockMiddleware,
 )
 from .redis_client import close_redis_client, create_redis_client
 from .routes import router
@@ -55,6 +56,7 @@ def create_app(
         Middleware(RequestIdMiddleware),
         Middleware(ObservabilityMiddleware),
         Middleware(MaintenanceMiddleware),
+        Middleware(TemporaryBlockMiddleware),
         Middleware(RateLimitMiddleware),
         Middleware(DuplicateApplicationMiddleware),
         Middleware(StatsCacheMiddleware),

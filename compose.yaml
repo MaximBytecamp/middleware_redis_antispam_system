@@ -1,0 +1,58 @@
+services:
+  api:
+    build:
+      context: .
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      ADMIN_KEY: ${ADMIN_KEY:-secret123}
+      RATE_LIMIT: ${RATE_LIMIT:-10}
+      RATE_WINDOW: ${RATE_WINDOW:-60}
+      DUPLICATE_TTL: ${DUPLICATE_TTL:-120}
+      VIOLATION_LIMIT: ${VIOLATION_LIMIT:-3}
+      VIOLATION_WINDOW: ${VIOLATION_WINDOW:-300}
+      BLOCK_TTL: ${BLOCK_TTL:-600}
+      STATS_CACHE_TTL: ${STATS_CACHE_TTL:-15}
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+    command: ["python", "worker.py"]
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
