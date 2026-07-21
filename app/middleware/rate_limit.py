@@ -50,25 +50,6 @@ class RateLimitMiddleware:
         state = request_state(scope)
 
         try:
-            blocked_key = f"blocked:{ip}"
-            is_blocked = await redis.get(blocked_key)
-            if is_blocked:
-                ttl = await redis.ttl(blocked_key)
-                if ttl < 1:
-                    ttl = setting(scope, "block_ttl", 600)
-                    await redis.expire(blocked_key, ttl, nx=True)
-
-                state["response_reason"] = "temporary_blocked"
-                await json_response(
-                    scope,
-                    receive,
-                    send,
-                    403,
-                    "Ваш IP временно заблокирован",
-                    {"Retry-After": str(ttl)},
-                )
-                return
-
             count, ttl = await self._increment_window(
                 redis,
                 f"rate_limit:{ip}",
